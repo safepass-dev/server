@@ -12,7 +12,7 @@ import (
 type UserRepositoryMethods interface {
 	GetUsers() ([]*models.User, *models.Error)
 	GetUserByID(id string) (*models.User, *models.Error)
-	GetUserByUsername(username string) (*models.User, *models.Error)
+	GetUserByEmail(email string) (*models.User, *models.Error)
 	CreateUser(*user.CreateUser) (*models.User, *models.Error)
 	UpdateUser(string *user.UpdateUser) (*models.User, *models.Error)
 	DeleteUser(id string) (*models.User, *models.Error)
@@ -84,8 +84,8 @@ func (u *UserRepository) GetUserByID(id string) (*models.User, *models.Error) {
 	return user, nil
 }
 
-func (u *UserRepository) GetUserByUsername(username string) (*models.User, *models.Error) {
-	res, _, err := u.client.From("users").Select("*", "1", false).Eq("username", username).Single().Execute()
+func (u *UserRepository) GetUserByEmail(email string) (*models.User, *models.Error) {
+	res, _, err := u.client.From("users").Select("*", "1", false).Eq("email", email).Single().Execute()
 	if err != nil {
 		return nil, &models.Error{
 			Status:  404,
