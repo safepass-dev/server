@@ -165,9 +165,13 @@ func (a *authHandlers) Register(w http.ResponseWriter, r *http.Request) {
 			statusCode, err = strconv.Atoi(strings.TrimSpace(parts[0]))
 			if err != nil {
 				statusCode = http.StatusInternalServerError
+				statusText = http.StatusText(http.StatusInternalServerError)
+			} else if statusCode < 400 || statusCode >= 511 {
+				statusCode = http.StatusInternalServerError
+				statusText = http.StatusText(http.StatusInternalServerError)
+			} else {
+				statusText = strings.TrimSpace(parts[1])
 			}
-
-			statusText = strings.TrimSpace(parts[1])
 		}
 
 		w.Header().Set("Content-Type", "application/json")

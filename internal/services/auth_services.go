@@ -31,6 +31,27 @@ func NewAuthServices(userServices *UserServices) *AuthServices {
 	}
 }
 
+func (a *AuthServices) Login(userRequest *user.LoginRequest) ([]byte, error) {
+	user, err := a.userServices.GetUserByEmail(userRequest.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	salt, err := base64.StdEncoding.DecodeString(user.Salt)
+	if err != nil {
+		return nil, fmt.Errorf("500: Error decoding salt")
+	}
+
+	masterPasswordHash := userRequest.MasterPasswordHash
+	newMasterPasswordHash := crypto.DeriveKeySha256([]byte(masterPasswordHash), salt, user.IterationCount, MASTER_PASSWORD_HASH_LENGTH)
+
+	if user.MasterPasswordHash != base64.StdEncoding.EncodeToString(newMasterPasswordHash) {
+		return nil, fmt.Errorf("401: Invalid master password")
+	}
+
+	return []byte(base64.StdEncoding.EncodeToString(newMasterPasswordHash)), nil
+}
+
 func (a *AuthServices) Register(userRequest *user.CreateUserRequest) ([]byte, error) {
 	salt, err := crypto.CreateRandomSalt(32)
 	if err != nil {

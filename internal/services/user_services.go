@@ -12,7 +12,7 @@ import (
 type UserServicesMethods interface {
 	GetUsers() ([]*models.User, error)
 	GetUserByID(id string) (*models.User, error)
-	GetUserByUsername(username string) (*models.User, error)
+	GetUserByEmail(email string) (*models.User, error)
 	CreateUser(*user.CreateUser) (*models.User, error)
 	UpdateUser(id string, user *user.UpdateUserRequest) (*models.User, error)
 	DeleteUser(id string) (*models.User, error)
@@ -48,8 +48,8 @@ func (u *UserServices) CreateUser(userRequest *user.CreateUser) (*models.User, e
 	return res, nil
 }
 
-func (u *UserServices) GetUserByUsername(username string) (*models.User, error) {
-	user, err := u.userRepository.GetUserByUsername(username)
+func (u *UserServices) GetUserByEmail(email string) (*models.User, error) {
+	user, err := u.userRepository.GetUserByEmail(email)
 	if err != nil {
 		return nil, fmt.Errorf("%d: %s", err.Status, err.Message)
 	}
