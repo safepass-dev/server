@@ -15,6 +15,7 @@ const (
 )
 
 type AuthServicesMethods interface {
+	Login(userRequest *user.LoginRequest) ([]byte, error)
 	Register(userRequest *user.CreateUserRequest) ([]byte, error)
 }
 
