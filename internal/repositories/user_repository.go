@@ -110,7 +110,7 @@ func (u *UserRepository) GetUserByEmail(email string) (*models.User, *models.Err
 func (u *UserRepository) CreateUser(user *user.CreateUser) (*models.User, *models.Error) {
 	res, _, err := u.client.From("users").Insert(user, false, "", "", "1").Execute()
 	if err != nil {
-		if err.Error() == "duplicate key value violates unique constraint \"users_username_key\"" {
+		if err.Error() == "(23505) duplicate key value violates unique constraint \"users_username_key\"" {
 			return nil, &models.Error{
 				Status:  409,
 				Message: "Username already exists",
@@ -118,7 +118,7 @@ func (u *UserRepository) CreateUser(user *user.CreateUser) (*models.User, *model
 			}
 		}
 
-		if err.Error() == "duplicate key value violates unique constraint \"users_email_key\"" {
+		if err.Error() == "(23505) duplicate key value violates unique constraint \"users_email_key\"" {
 			return nil, &models.Error{
 				Status:  409,
 				Message: "Email already exists",
