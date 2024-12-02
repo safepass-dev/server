@@ -34,8 +34,8 @@ func (u *UserRepository) GetUsers() ([]*models.User, *models.Error) {
 	res, count, err := u.client.From("users").Select("*", "exact", false).Execute()
 	if err != nil {
 		return nil, &models.Error{
-			Status:  500,
-			Message: fmt.Sprintf("Error getting users: %s", err.Error()),
+			Status:  404,
+			Message: "No users found",
 			Method:  "GetUsers",
 		}
 	}
@@ -65,8 +65,8 @@ func (u *UserRepository) GetUserByID(id string) (*models.User, *models.Error) {
 	res, _, err := u.client.From("users").Select("*", "1", false).Eq("id", id).Single().Execute()
 	if err != nil {
 		return nil, &models.Error{
-			Status:  500,
-			Message: fmt.Sprintf("Error getting users: %s", err.Error()),
+			Status:  404,
+			Message: "No user found",
 			Method:  "GetUserByID",
 		}
 	}
@@ -88,8 +88,8 @@ func (u *UserRepository) GetUserByUsername(username string) (*models.User, *mode
 	res, _, err := u.client.From("users").Select("*", "1", false).Eq("username", username).Single().Execute()
 	if err != nil {
 		return nil, &models.Error{
-			Status:  500,
-			Message: fmt.Sprintf("Error getting users: %s", err.Error()),
+			Status:  404,
+			Message: "No user found",
 			Method:  "GetUserByUsername",
 		}
 	}
@@ -110,9 +110,25 @@ func (u *UserRepository) GetUserByUsername(username string) (*models.User, *mode
 func (u *UserRepository) CreateUser(user *user.CreateUser) (*models.User, *models.Error) {
 	res, _, err := u.client.From("users").Insert(user, false, "", "", "1").Execute()
 	if err != nil {
+		if err.Error() == "duplicate key value violates unique constraint \"users_username_key\"" {
+			return nil, &models.Error{
+				Status:  409,
+				Message: "Username already exists",
+				Method:  "CreateUser",
+			}
+		}
+
+		if err.Error() == "duplicate key value violates unique constraint \"users_email_key\"" {
+			return nil, &models.Error{
+				Status:  409,
+				Message: "Email already exists",
+				Method:  "CreateUser",
+			}
+		}
+
 		return nil, &models.Error{
-			Status:  500,
-			Message: fmt.Sprintf("Error creating user: %s", err.Error()),
+			Status:  422,
+			Message: "Error creating user",
 			Method:  "CreateUser",
 		}
 	}
@@ -133,9 +149,25 @@ func (u *UserRepository) CreateUser(user *user.CreateUser) (*models.User, *model
 func (u *UserRepository) UpdateUser(userId string, user *user.UpdateUser) (*models.User, *models.Error) {
 	res, _, err := u.client.From("users").Update(user, "", "1").Eq("id", userId).Execute()
 	if err != nil {
+		if err.Error() == "duplicate key value violates unique constraint \"users_username_key\"" {
+			return nil, &models.Error{
+				Status:  409,
+				Message: "Username already exists",
+				Method:  "UpdateUser",
+			}
+		}
+
+		if err.Error() == "duplicate key value violates unique constraint \"users_email_key\"" {
+			return nil, &models.Error{
+				Status:  409,
+				Message: "Email already exists",
+				Method:  "UpdateUser",
+			}
+		}
+
 		return nil, &models.Error{
-			Status:  500,
-			Message: fmt.Sprintf("Error updating user: %s", err.Error()),
+			Status:  422,
+			Message: "Error updating user",
 			Method:  "UpdateUser",
 		}
 	}

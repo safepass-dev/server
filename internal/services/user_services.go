@@ -33,7 +33,7 @@ func NewUserServices(userRepository *repositories.UserRepository) *UserServices 
 func (u *UserServices) GetUsers() ([]*models.User, error) {
 	users, err := u.userRepository.GetUsers()
 	if err != nil {
-		return nil, fmt.Errorf("%s: %s", err.Method, err.Message)
+		return nil, fmt.Errorf("%d: %s", err.Status, err.Message)
 	}
 
 	return users, nil
@@ -42,7 +42,7 @@ func (u *UserServices) GetUsers() ([]*models.User, error) {
 func (u *UserServices) CreateUser(userRequest *user.CreateUser) (*models.User, error) {
 	res, err := u.userRepository.CreateUser(userRequest)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %s", err.Method, err.Message)
+		return nil, fmt.Errorf("%d: %s", err.Status, err.Message)
 	}
 
 	return res, nil
@@ -51,7 +51,7 @@ func (u *UserServices) CreateUser(userRequest *user.CreateUser) (*models.User, e
 func (u *UserServices) GetUserByUsername(username string) (*models.User, error) {
 	user, err := u.userRepository.GetUserByUsername(username)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %s", err.Method, err.Message)
+		return nil, fmt.Errorf("%d: %s", err.Status, err.Message)
 	}
 
 	return user, nil
@@ -60,7 +60,7 @@ func (u *UserServices) GetUserByUsername(username string) (*models.User, error) 
 func (u *UserServices) GetUserByID(id string) (*models.User, error) {
 	user, err := u.userRepository.GetUserByID(id)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %s", err.Method, err.Message)
+		return nil, fmt.Errorf("%d: %s", err.Status, err.Message)
 	}
 
 	return user, nil
@@ -75,7 +75,7 @@ func (u *UserServices) UpdateUser(id string, userRequest *user.UpdateUserRequest
 
 	res, err := u.userRepository.UpdateUser(id, newUser)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %s", err.Method, err.Message)
+		return nil, fmt.Errorf("%d: %s", err.Status, err.Message)
 	}
 
 	return res, nil
@@ -84,7 +84,7 @@ func (u *UserServices) UpdateUser(id string, userRequest *user.UpdateUserRequest
 func (u *UserServices) DeleteUser(id string) (*models.User, error) {
 	res, err := u.userRepository.DeleteUser(id)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %s", err.Method, err.Message)
+		return nil, fmt.Errorf("%d: %s", err.Status, err.Message)
 	}
 
 	return res, nil
