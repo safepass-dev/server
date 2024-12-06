@@ -2,13 +2,15 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 
+	"github.com/safepass/server/internal/api/handlers"
+	"github.com/safepass/server/internal/api/routes"
 	"github.com/safepass/server/internal/config"
 	"github.com/safepass/server/internal/database"
 	"github.com/safepass/server/internal/repositories"
 	"github.com/safepass/server/internal/services"
 	"github.com/safepass/server/pkg/dotenv"
-	"github.com/safepass/server/pkg/dtos/user"
 )
 
 func main() {
@@ -30,16 +32,13 @@ func main() {
 	userServices := services.NewUserServices(userRepository)
 	authServices := services.NewAuthServices(userServices, &appConfig)
 
-	userRequest := &user.CreateUserRequest{
-		Email:              "test588@gmail.com",
-		MasterPasswordHash: "test1",
-	}
+	authHandlers := handlers.NewAuthHandlers(*authServices)
 
-	response, err := authServices.Register(userRequest)
+	router := routes.NewRouter(authHandlers)
+	mux := routes.NewServer(router)
+
+	err = http.ListenAndServe("192.168.223.153:5050", mux)
 	if err != nil {
-		fmt.Println(err)
-		return
+		fmt.Println("Server is running on localhost:5050")
 	}
-
-	fmt.Println(response.Token)
 }
