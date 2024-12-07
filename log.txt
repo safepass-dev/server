@@ -1,0 +1,38 @@
+2024/12/07 15:29:15 2024-12-07 15:29:15 [31merror[0m testing.go:83
+Error during get vaults
+
+2024/12/07 15:29:15 vault_repository.go:42: 
+Error during get vaults: <nil>
+2024/12/07 16:03:13 2024-12-07 16:03:13 [31merror[0m testing.go:83
+Error during get vaults
+
+2024/12/07 16:03:14 2024-12-07 16:03:14 [34minfo[0m vault_repository.go:64
+[]
+
+2024/12/07 16:03:14 2024-12-07 16:03:14 [34minfo[0m vault_repository.go:65
+0
+
+2024/12/07 16:04:50 2024-12-07 16:04:50 [31merror[0m proc.go:272
+Error during get vaults
+
+2024/12/07 16:04:50 2024-12-07 16:04:50 [34minfo[0m testing.go:65
+[]
+
+2024/12/07 16:04:50 2024-12-07 16:04:50 [34minfo[0m testing.go:65
+0
+
+2024/12/07 16:05:00 2024-12-07 16:05:00 [31merror[0m logging.go:104
+Error during get vaults
+
+2024/12/07 16:05:00 2024-12-07 16:05:00 [34minfo[0m logging.go:96
+[]
+
+2024/12/07 16:05:00 2024-12-07 16:05:00 [34minfo[0m logging.go:96
+0
+
+2024/12/07 16:05:26 2024-12-07 16:05:26 [34minfo[0m vault_repository.go:64
+[]
+
+2024/12/07 16:05:26 2024-12-07 16:05:26 [34minfo[0m vault_repository.go:65
+0
+

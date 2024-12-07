@@ -39,7 +39,7 @@ func (u *UserRepository) GetUsers() ([]*models.User, *models.Error) {
 		return nil, errModel
 	}
 
-	if count == 0 {
+	if count <= 0 {
 		description := "No users found"
 		errModel := models.NewError(404, "NotFound", description)
 
