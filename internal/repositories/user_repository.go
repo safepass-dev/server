@@ -13,8 +13,8 @@ type UserRepositoryMethods interface {
 	GetUsers() ([]*models.User, *models.Error)
 	GetUserByID(id string) (*models.User, *models.Error)
 	GetUserByEmail(email string) (*models.User, *models.Error)
-	CreateUser(*user.CreateUser) (*models.User, *models.Error)
-	UpdateUser(string *user.UpdateUser) (*models.User, *models.Error)
+	CreateUser(*user.CreateUser) *models.IdentityResult
+	UpdateUser(string *user.UpdateUser) (*models.User, *models.IdentityResult)
 	DeleteUser(id string) (*models.User, *models.Error)
 }
 
@@ -33,29 +33,26 @@ func NewUserRepository(client *supabase.Client) *UserRepository {
 func (u *UserRepository) GetUsers() ([]*models.User, *models.Error) {
 	res, count, err := u.client.From("users").Select("*", "exact", false).Execute()
 	if err != nil {
-		return nil, &models.Error{
-			Status:  404,
-			Message: "No users found",
-			Method:  "GetUsers",
-		}
+		description := "No users found"
+		errModel := models.NewError(404, "NotFound", description)
+
+		return nil, errModel
 	}
 
 	if count == 0 {
-		return nil, &models.Error{
-			Status:  404,
-			Message: "No users found",
-			Method:  "GetUsers",
-		}
+		description := "No users found"
+		errModel := models.NewError(404, "NotFound", description)
+
+		return nil, errModel
 	}
 
 	var users []*models.User
 	err = json.Unmarshal(res, &users)
 	if err != nil {
-		return nil, &models.Error{
-			Status:  500,
-			Message: fmt.Sprintf("Error unmarshalling users: %s", err.Error()),
-			Method:  "GetUsers",
-		}
+		description := fmt.Sprintf("Error unmarshalling users: %s", err.Error())
+		errModel := models.NewError(500, "InternalError", description)
+
+		return nil, errModel
 	}
 
 	return users, nil
@@ -64,21 +61,19 @@ func (u *UserRepository) GetUsers() ([]*models.User, *models.Error) {
 func (u *UserRepository) GetUserByID(id string) (*models.User, *models.Error) {
 	res, _, err := u.client.From("users").Select("*", "1", false).Eq("id", id).Single().Execute()
 	if err != nil {
-		return nil, &models.Error{
-			Status:  404,
-			Message: "No user found",
-			Method:  "GetUserByID",
-		}
+		description := "No user found"
+		errModel := models.NewError(404, "NotFound", description)
+
+		return nil, errModel
 	}
 
 	var user *models.User
 	err = json.Unmarshal(res, &user)
 	if err != nil {
-		return nil, &models.Error{
-			Status:  500,
-			Message: fmt.Sprintf("Error unmarshalling users: %s", err.Error()),
-			Method:  "GetUserByID",
-		}
+		description := fmt.Sprintf("Error unmarshalling users: %s", err.Error())
+		errModel := models.NewError(500, "InternalError", description)
+
+		return nil, errModel
 	}
 
 	return user, nil
@@ -87,130 +82,154 @@ func (u *UserRepository) GetUserByID(id string) (*models.User, *models.Error) {
 func (u *UserRepository) GetUserByEmail(email string) (*models.User, *models.Error) {
 	res, _, err := u.client.From("users").Select("*", "1", false).Eq("email", email).Single().Execute()
 	if err != nil {
-		return nil, &models.Error{
-			Status:  404,
-			Message: "No user found",
-			Method:  "GetUserByUsername",
-		}
+		description := "No user found"
+		errModel := models.NewError(404, "NotFound", description)
+
+		return nil, errModel
 	}
 
 	var user *models.User
 	err = json.Unmarshal(res, &user)
 	if err != nil {
-		return nil, &models.Error{
-			Status:  500,
-			Message: fmt.Sprintf("Error unmarshalling users: %s", err.Error()),
-			Method:  "GetUserByUsername",
-		}
+		description := fmt.Sprintf("Error unmarshalling users: %s", err.Error())
+		errModel := models.NewError(500, "InternalError", description)
+
+		return nil, errModel
 	}
 
 	return user, nil
 }
 
-func (u *UserRepository) CreateUser(user *user.CreateUser) (*models.User, *models.Error) {
+func (u *UserRepository) CreateUser(user *user.CreateUser) *models.IdentityResult {
 	res, _, err := u.client.From("users").Insert(user, false, "", "", "1").Execute()
+
 	if err != nil {
+		var errors []*models.Error
+
 		if err.Error() == "(23505) duplicate key value violates unique constraint \"users_username_key\"" {
-			return nil, &models.Error{
-				Status:  409,
-				Message: "Username already exists",
-				Method:  "CreateUser",
-			}
+			description := "Username already exists"
+			errModel := models.NewError(409, "Confilict", description)
+
+			errors = append(errors, errModel)
+		} else if err.Error() == "(23505) duplicate key value violates unique constraint \"users_email_key\"" {
+			description := "Email already exists"
+			errModel := models.NewError(409, "Confilict", description)
+
+			errors = append(errors, errModel)
+		} else {
+			description := "Content is not valid user"
+			errModel := models.NewError(422, "UnprocessableContent", description)
+
+			errors = append(errors, errModel)
 		}
 
-		if err.Error() == "(23505) duplicate key value violates unique constraint \"users_email_key\"" {
-			return nil, &models.Error{
-				Status:  409,
-				Message: "Email already exists",
-				Method:  "CreateUser",
-			}
-		}
-
-		return nil, &models.Error{
-			Status:  422,
-			Message: "Error creating user",
-			Method:  "CreateUser",
+		return &models.IdentityResult{
+			Errors:    errors,
+			Succeeded: false,
+			Message:   "Registration error",
 		}
 	}
 
 	var response []*models.User
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		return nil, &models.Error{
-			Status:  500,
-			Message: fmt.Sprintf("Error unmarshalling response: %s", err.Error()),
-			Method:  "CreateUser",
+		var errors []*models.Error
+
+		description := fmt.Sprintf("Error unmarshalling response: %s", err.Error())
+		errModel := models.NewError(500, "InternalError", description)
+
+		errors = append(errors, errModel)
+
+		return &models.IdentityResult{
+			Errors:    errors,
+			Succeeded: false,
+			Message:   "Registration error",
 		}
 	}
 
-	return response[0], nil
+	return &models.IdentityResult{
+		Errors:    nil,
+		Succeeded: true,
+		Message:   "Registration successful",
+	}
 }
 
-func (u *UserRepository) UpdateUser(userId string, user *user.UpdateUser) (*models.User, *models.Error) {
+func (u *UserRepository) UpdateUser(userId string, user *user.UpdateUser) (*models.User, *models.IdentityResult) {
 	res, _, err := u.client.From("users").Update(user, "", "1").Eq("id", userId).Execute()
 	if err != nil {
-		if err.Error() == "duplicate key value violates unique constraint \"users_username_key\"" {
-			return nil, &models.Error{
-				Status:  409,
-				Message: "Username already exists",
-				Method:  "UpdateUser",
-			}
+		var errors []*models.Error
+
+		if err.Error() == "(23505) duplicate key value violates unique constraint \"users_username_key\"" {
+			description := "Username already exists"
+			errModel := models.NewError(409, "Confilict", description)
+
+			errors = append(errors, errModel)
+		} else if err.Error() == "(23505) duplicate key value violates unique constraint \"users_email_key\"" {
+			description := "Email already exists"
+			errModel := models.NewError(409, "Confilict", description)
+
+			errors = append(errors, errModel)
+		} else {
+			description := "Content is not valid user"
+			errModel := models.NewError(422, "UnprocessableContent", description)
+
+			errors = append(errors, errModel)
 		}
 
-		if err.Error() == "duplicate key value violates unique constraint \"users_email_key\"" {
-			return nil, &models.Error{
-				Status:  409,
-				Message: "Email already exists",
-				Method:  "UpdateUser",
-			}
-		}
-
-		return nil, &models.Error{
-			Status:  422,
-			Message: "Error updating user",
-			Method:  "UpdateUser",
+		return nil, &models.IdentityResult{
+			Errors:    errors,
+			Succeeded: false,
+			Message:   "Update error",
 		}
 	}
 
 	var response []*models.User
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		return nil, &models.Error{
-			Status:  500,
-			Message: fmt.Sprintf("Error unmarshalling response: %s", err.Error()),
-			Method:  "UpdateUser",
+		var errors []*models.Error
+
+		description := fmt.Sprintf("Error unmarshalling response: %s", err.Error())
+		errModel := models.NewError(500, "InternalError", description)
+
+		errors = append(errors, errModel)
+
+		return nil, &models.IdentityResult{
+			Errors:    errors,
+			Succeeded: false,
+			Message:   "Update error",
 		}
 	}
 
-	return response[0], nil
+	return response[0], &models.IdentityResult{
+		Errors:    nil,
+		Succeeded: true,
+		Message:   "Update successful",
+	}
 }
 
 func (u *UserRepository) DeleteUser(id string) (*models.User, *models.Error) {
 	res, _, err := u.client.From("users").Delete("", "1").Eq("id", id).Execute()
 	if err != nil {
-		return nil, &models.Error{
-			Status:  500,
-			Message: fmt.Sprintf("Error deleting user: %s", err.Error()),
-			Method:  "DeleteUser",
-		}
+		description := fmt.Sprintf("Error deleting user: %s", err.Error())
+		errModel := models.NewError(500, "InternalError", description)
+
+		return nil, errModel
 	}
 
 	var response []*models.User
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		return nil, &models.Error{
-			Status:  500,
-			Message: fmt.Sprintf("Error unmarshalling response: %s", err.Error()),
-			Method:  "DeleteUser",
-		}
+		description := fmt.Sprintf("Error unmarshalling response: %s", err.Error())
+		errModel := models.NewError(500, "InternalError", description)
+
+		return nil, errModel
 	}
 
 	if len(response) == 0 {
-		return nil, &models.Error{
-			Status:  404,
-			Message: "No user found",
-			Method:  "DeleteUser",
-		}
+		description := "No user found"
+		errModel := models.NewError(404, "NotFound", description)
+
+		return nil, errModel
 	}
 
 	return response[0], nil

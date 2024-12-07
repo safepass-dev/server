@@ -3,8 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
-	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/safepass/server/internal/services"
@@ -76,16 +74,16 @@ func (a *authHandlers) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwtResponse, err := a.authServices.Login(loginRequest)
-	if err != nil {
+	jwtResponse, merr := a.authServices.Login(loginRequest)
+	if merr != nil {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
+		w.WriteHeader(merr.Code)
 
 		response := models.Response{
-			Status:     http.StatusUnauthorized,
-			StatusText: http.StatusText(http.StatusUnauthorized),
+			Status:     merr.Code,
+			StatusText: http.StatusText(merr.Code),
 			Data: map[string]string{
-				"message": "Email or password is incorrect",
+				"message": merr.Description,
 			},
 		}
 
@@ -152,36 +150,18 @@ func (a *authHandlers) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwtResponse, err := a.authServices.Register(createUser)
-	if err != nil {
-		var statusCode int
-		var statusText string
-
-		parts := strings.Split(err.Error(), ":")
-		if len(parts) != 2 {
-			statusCode = http.StatusInternalServerError
-			statusText = http.StatusText(http.StatusInternalServerError)
-		} else {
-			statusCode, err = strconv.Atoi(strings.TrimSpace(parts[0]))
-			if err != nil {
-				statusCode = http.StatusInternalServerError
-				statusText = http.StatusText(http.StatusInternalServerError)
-			} else if statusCode < 400 || statusCode >= 511 {
-				statusCode = http.StatusInternalServerError
-				statusText = http.StatusText(http.StatusInternalServerError)
-			} else {
-				statusText = strings.TrimSpace(parts[1])
-			}
-		}
+	errors := a.authServices.Register(createUser)
+	if errors != nil {
+		merr := errors[0]
 
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(statusCode)
+		w.WriteHeader(merr.Code)
 
 		response := models.Response{
-			Status:     statusCode,
-			StatusText: http.StatusText(statusCode),
+			Status:     merr.Code,
+			StatusText: http.StatusText(merr.Code),
 			Data: map[string]string{
-				"message": statusText,
+				"message": merr.Description,
 			},
 		}
 
@@ -195,7 +175,9 @@ func (a *authHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	response := models.Response{
 		Status:     http.StatusOK,
 		StatusText: http.StatusText(http.StatusOK),
-		Data:       jwtResponse,
+		Data: map[string]string{
+			"message": "Registration successful",
+		},
 	}
 
 	json.NewEncoder(w).Encode(response)

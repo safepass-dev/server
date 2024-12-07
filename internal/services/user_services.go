@@ -1,8 +1,6 @@
 package services
 
 import (
-	"fmt"
-
 	"github.com/safepass/server/internal/consts"
 	"github.com/safepass/server/internal/repositories"
 	"github.com/safepass/server/pkg/dtos/user"
@@ -10,12 +8,12 @@ import (
 )
 
 type UserServicesMethods interface {
-	GetUsers() ([]*models.User, error)
-	GetUserByID(id string) (*models.User, error)
-	GetUserByEmail(email string) (*models.User, error)
-	CreateUser(*user.CreateUser) (*models.User, error)
-	UpdateUser(id string, user *user.UpdateUserRequest) (*models.User, error)
-	DeleteUser(id string) (*models.User, error)
+	GetUsers() ([]*models.User, *models.Error)
+	GetUserByID(id string) (*models.User, *models.Error)
+	GetUserByEmail(email string) (*models.User, *models.Error)
+	CreateUser(*user.CreateUser) *models.IdentityResult
+	UpdateUser(id string, user *user.UpdateUserRequest) (*models.User, *models.IdentityResult)
+	DeleteUser(id string) (*models.User, *models.Error)
 }
 
 type UserServices struct {
@@ -30,62 +28,52 @@ func NewUserServices(userRepository *repositories.UserRepository) *UserServices 
 	}
 }
 
-func (u *UserServices) GetUsers() ([]*models.User, error) {
+func (u *UserServices) GetUsers() ([]*models.User, *models.Error) {
 	users, err := u.userRepository.GetUsers()
 	if err != nil {
-		return nil, fmt.Errorf("%d: %s", err.Status, err.Message)
+		return nil, err
 	}
 
 	return users, nil
 }
 
-func (u *UserServices) CreateUser(userRequest *user.CreateUser) (*models.User, error) {
-	res, err := u.userRepository.CreateUser(userRequest)
-	if err != nil {
-		return nil, fmt.Errorf("%d: %s", err.Status, err.Message)
-	}
-
-	return res, nil
-}
-
-func (u *UserServices) GetUserByEmail(email string) (*models.User, error) {
-	user, err := u.userRepository.GetUserByEmail(email)
-	if err != nil {
-		return nil, fmt.Errorf("%d: %s", err.Status, err.Message)
-	}
-
-	return user, nil
-}
-
-func (u *UserServices) GetUserByID(id string) (*models.User, error) {
+func (u *UserServices) GetUserByID(id string) (*models.User, *models.Error) {
 	user, err := u.userRepository.GetUserByID(id)
 	if err != nil {
-		return nil, fmt.Errorf("%d: %s", err.Status, err.Message)
+		return nil, err
 	}
 
 	return user, nil
 }
 
-func (u *UserServices) UpdateUser(id string, userRequest *user.UpdateUserRequest) (*models.User, error) {
+func (u *UserServices) GetUserByEmail(email string) (*models.User, *models.Error) {
+	user, err := u.userRepository.GetUserByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (u *UserServices) CreateUser(userRequest *user.CreateUser) *models.IdentityResult {
+	identityResult := u.userRepository.CreateUser(userRequest)
+
+	return identityResult
+}
+
+func (u *UserServices) UpdateUser(id string, userRequest *user.UpdateUserRequest) (*models.User, *models.IdentityResult) {
 	newUser := &user.UpdateUser{
 		Username: userRequest.Username,
 		Email:    userRequest.Email,
 		RoleId:   consts.Roles.USER,
 	}
 
-	res, err := u.userRepository.UpdateUser(id, newUser)
-	if err != nil {
-		return nil, fmt.Errorf("%d: %s", err.Status, err.Message)
-	}
-
-	return res, nil
+	res, identityResult := u.userRepository.UpdateUser(id, newUser)
+	return res, identityResult
 }
 
-func (u *UserServices) DeleteUser(id string) (*models.User, error) {
+func (u *UserServices) DeleteUser(id string) (*models.User, *models.Error) {
 	res, err := u.userRepository.DeleteUser(id)
-	if err != nil {
-		return nil, fmt.Errorf("%d: %s", err.Status, err.Message)
-	}
 
-	return res, nil
+	return res, err
 }

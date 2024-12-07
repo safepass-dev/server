@@ -3,7 +3,6 @@ package services
 import (
 	"crypto/ecdsa"
 	"encoding/base64"
-	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -20,8 +19,8 @@ const (
 )
 
 type AuthServicesMethods interface {
-	Login(userRequest *user.LoginRequest) (*models.TokenResponse, error)
-	Register(userRequest *user.CreateUserRequest) (*models.TokenResponse, error)
+	Login(userRequest *user.LoginRequest) (*models.TokenResponse, *models.Error)
+	Register(userRequest *user.CreateUserRequest) (*models.TokenResponse, *models.Error)
 }
 
 type AuthServices struct {
@@ -38,22 +37,28 @@ func NewAuthServices(userServices *UserServices, config *config.Config) *AuthSer
 	}
 }
 
-func (a *AuthServices) Login(userRequest *user.LoginRequest) (*models.TokenResponse, error) {
-	user, err := a.userServices.GetUserByEmail(userRequest.Email)
-	if err != nil {
-		return nil, err
+func (a *AuthServices) Login(userRequest *user.LoginRequest) (*models.TokenResponse, *models.Error) {
+	user, merr := a.userServices.GetUserByEmail(userRequest.Email)
+	if merr != nil {
+		return nil, merr
 	}
 
 	salt, err := base64.StdEncoding.DecodeString(user.Salt)
 	if err != nil {
-		return nil, fmt.Errorf("500: Error decoding salt")
+		description := "Error decoding salt"
+		return nil, models.NewError(500, "InternalError", description)
 	}
 
-	masterPasswordHash := userRequest.MasterPasswordHash
+	masterPasswordHash, err := base64.StdEncoding.DecodeString(userRequest.MasterPasswordHash)
+	if err != nil {
+		description := "Password is not valid Base64"
+		return nil, models.NewError(422, "UnprocessableContent", description)
+	}
 	newMasterPasswordHash := crypto.DeriveKeySha256([]byte(masterPasswordHash), salt, user.IterationCount, MASTER_PASSWORD_HASH_LENGTH)
 
 	if user.MasterPasswordHash != base64.StdEncoding.EncodeToString(newMasterPasswordHash) {
-		return nil, fmt.Errorf("401: Invalid master password or email")
+		description := "Invalid master password or email"
+		return nil, models.NewError(401, "Unauthorized", description)
 	}
 
 	var (
@@ -64,7 +69,8 @@ func (a *AuthServices) Login(userRequest *user.LoginRequest) (*models.TokenRespo
 
 	key, err = a.appConfig.GetJWTSecretKey()
 	if err != nil {
-		return nil, err
+		description := "Config internal error"
+		return nil, models.NewError(500, "InternalError", description)
 	}
 
 	t = jwt.NewWithClaims(jwt.SigningMethodES256, jwt.MapClaims{
@@ -83,7 +89,8 @@ func (a *AuthServices) Login(userRequest *user.LoginRequest) (*models.TokenRespo
 
 	s, err = t.SignedString(key)
 	if err != nil {
-		return nil, fmt.Errorf("500: Error signing JWT token")
+		description := "Error signing JWT token"
+		return nil, models.NewError(500, "InternalError", description)
 	}
 
 	tokenResponse := &models.TokenResponse{
@@ -94,14 +101,29 @@ func (a *AuthServices) Login(userRequest *user.LoginRequest) (*models.TokenRespo
 	return tokenResponse, nil
 }
 
-func (a *AuthServices) Register(userRequest *user.CreateUserRequest) (*models.TokenResponse, error) {
+func (a *AuthServices) Register(userRequest *user.CreateUserRequest) []*models.Error {
 	salt, err := crypto.CreateRandomSalt(32)
 	if err != nil {
-		return nil, err
+		var errors []*models.Error
+
+		description := "Creating salt error"
+		errModel := models.NewError(500, "InternalError", description)
+		errors = append(errors, errModel)
+
+		return errors
 	}
 
-	masterPasswordHash := userRequest.MasterPasswordHash
-	newMasterPasswordHash := crypto.DeriveKeySha256([]byte(masterPasswordHash), salt, MASTER_PASSWORD_HASH_ITERATION_COUNT, MASTER_PASSWORD_HASH_LENGTH)
+	masterPasswordHash, err := base64.StdEncoding.DecodeString(userRequest.MasterPasswordHash)
+	if err != nil {
+		var errors []*models.Error
+		description := "Password is not valid Base64"
+		errModel := models.NewError(422, "UnprocessableContent", description)
+		errors = append(errors, errModel)
+
+		return errors
+	}
+
+	newMasterPasswordHash := crypto.DeriveKeySha256(masterPasswordHash, salt, MASTER_PASSWORD_HASH_ITERATION_COUNT, MASTER_PASSWORD_HASH_LENGTH)
 
 	user := &user.CreateUser{
 		Username:           userRequest.Username,
@@ -114,45 +136,10 @@ func (a *AuthServices) Register(userRequest *user.CreateUserRequest) (*models.To
 		RoleId:             consts.Roles.USER,
 	}
 
-	createdUser, err := a.userServices.CreateUser(user)
-	if err != nil {
-		return nil, err
+	identityResult := a.userServices.CreateUser(user)
+	if !identityResult.Succeeded {
+		return identityResult.Errors
 	}
 
-	var (
-		key *ecdsa.PrivateKey
-		t   *jwt.Token
-		s   string
-	)
-
-	key, err = a.appConfig.GetJWTSecretKey()
-	if err != nil {
-		return nil, err
-	}
-
-	t = jwt.NewWithClaims(jwt.SigningMethodES256, jwt.MapClaims{
-		"iss": "safepass",
-		"sub": createdUser.ID,
-		"iat": time.Now().Unix(),
-		"exp": time.Now().Add(time.Second * a.appConfig.JWT.ExpirationTime).Unix(),
-		"aud": "safepass-mobile",
-		"roles": []string{
-			"user",
-		},
-		"username":    createdUser.Username,
-		"email":       createdUser.Email,
-		"auth_method": "master_password",
-	})
-
-	s, err = t.SignedString(key)
-	if err != nil {
-		return nil, fmt.Errorf("500: Error signing JWT token")
-	}
-
-	tokenResponse := &models.TokenResponse{
-		UserID: createdUser.ID,
-		Token:  s,
-	}
-
-	return tokenResponse, nil
+	return nil
 }
