@@ -37,8 +37,8 @@ func main() {
 	router := routes.NewRouter(authHandlers)
 	mux := routes.NewServer(router)
 
-	err = http.ListenAndServe("192.168.223.153:5050", mux)
+	err = http.ListenAndServe("0.0.0.0:5050", mux)
 	if err != nil {
-		fmt.Println("Server is running on localhost:5050")
+		fmt.Println("Failed to start server")
 	}
 }
