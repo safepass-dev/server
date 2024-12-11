@@ -5,9 +5,11 @@ import (
 	"net/http"
 
 	"github.com/safepass/server/internal/api/handlers"
+	"github.com/safepass/server/internal/api/middlewares"
 	"github.com/safepass/server/internal/api/routes"
 	"github.com/safepass/server/internal/config"
 	"github.com/safepass/server/internal/database"
+	"github.com/safepass/server/internal/logging"
 	"github.com/safepass/server/internal/repositories"
 	"github.com/safepass/server/internal/services"
 	"github.com/safepass/server/pkg/dotenv"
@@ -26,18 +28,29 @@ func main() {
 	}
 
 	client := context.GetSupabaseClient()
+	logger, err := logging.NewLogger(logging.INFO, "log.txt")
 
 	userRepository := repositories.NewUserRepository(client)
+	vaultRepository := repositories.NewVaultRepository(client, logger)
 
 	userServices := services.NewUserServices(userRepository)
-	authServices := services.NewAuthServices(userServices, &appConfig)
+	vaultServices := services.NewVaultServices(vaultRepository, &appConfig)
+	authServices := services.NewAuthServices(userServices, vaultServices, &appConfig)
 
 	authHandlers := handlers.NewAuthHandlers(*authServices)
+
+	if err != nil {
+		panic(err)
+	}
+
+	logMiddleware := middlewares.NewLogMiddleware(logger)
 
 	router := routes.NewRouter(authHandlers)
 	mux := routes.NewServer(router)
 
-	err = http.ListenAndServe("0.0.0.0:5050", mux)
+	loggedMux := logMiddleware.LogMiddlewareFunc(mux)
+
+	err = http.ListenAndServe("0.0.0.0:5050", loggedMux)
 	if err != nil {
 		fmt.Println("Failed to start server")
 	}

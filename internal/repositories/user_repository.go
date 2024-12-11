@@ -102,7 +102,6 @@ func (u *UserRepository) GetUserByEmail(email string) (*models.User, *models.Err
 
 func (u *UserRepository) CreateUser(user *user.CreateUser) *models.IdentityResult {
 	res, _, err := u.client.From("users").Insert(user, false, "", "", "1").Execute()
-
 	if err != nil {
 		var errors []*models.Error
 
@@ -150,7 +149,7 @@ func (u *UserRepository) CreateUser(user *user.CreateUser) *models.IdentityResul
 	return &models.IdentityResult{
 		Errors:    nil,
 		Succeeded: true,
-		Message:   "Registration successful",
+		Message:   response,
 	}
 }
 

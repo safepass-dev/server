@@ -3,6 +3,7 @@ package services
 import (
 	"crypto/ecdsa"
 	"encoding/base64"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -24,16 +25,18 @@ type AuthServicesMethods interface {
 }
 
 type AuthServices struct {
-	userServices *UserServices
-	appConfig    *config.Config
+	userServices  *UserServices
+	vaultServices *VaultServices
+	appConfig     *config.Config
 
 	AuthServicesMethods
 }
 
-func NewAuthServices(userServices *UserServices, config *config.Config) *AuthServices {
+func NewAuthServices(userServices *UserServices, vaultServices *VaultServices, config *config.Config) *AuthServices {
 	return &AuthServices{
-		userServices: userServices,
-		appConfig:    config,
+		userServices:  userServices,
+		vaultServices: vaultServices,
+		appConfig:     config,
 	}
 }
 
@@ -139,6 +142,18 @@ func (a *AuthServices) Register(userRequest *user.CreateUserRequest) []*models.E
 	identityResult := a.userServices.CreateUser(user)
 	if !identityResult.Succeeded {
 		return identityResult.Errors
+	}
+
+	createdUser, ok := identityResult.Message.(*models.User)
+	if !ok {
+		a.userServices.DeleteUser(strconv.Itoa(createdUser.ID))
+		return []*models.Error{models.NewError(500, "InternalServerError", "Unexpected error occurred.")}
+	}
+
+	merr := a.vaultServices.CreateVault(createdUser.ID, userRequest.ProtectedSymmetricKey)
+	if merr != nil {
+		a.userServices.DeleteUser(strconv.Itoa(createdUser.ID))
+		return []*models.Error{models.NewError(500, "InternalServerError", "Unexpected error occurred while creating vault for user.")}
 	}
 
 	return nil
