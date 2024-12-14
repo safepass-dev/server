@@ -10,24 +10,24 @@ import (
 	"github.com/safepass/server/pkg/models"
 )
 
-type AuthHandlers interface {
+type AuthHandlersFuncs interface {
 	Login(w http.ResponseWriter, r *http.Request)
 	Register(w http.ResponseWriter, r *http.Request)
 }
 
-type authHandlers struct {
+type AuthHandlers struct {
 	authServices services.AuthServices
 
-	AuthHandlers
+	AuthHandlersFuncs
 }
 
-func NewAuthHandlers(authServices services.AuthServices) *authHandlers {
-	return &authHandlers{
+func NewAuthHandlers(authServices services.AuthServices) *AuthHandlers {
+	return &AuthHandlers{
 		authServices: authServices,
 	}
 }
 
-func (a *authHandlers) Login(w http.ResponseWriter, r *http.Request) {
+func (a *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -82,9 +82,7 @@ func (a *authHandlers) Login(w http.ResponseWriter, r *http.Request) {
 		response := models.Response{
 			Status:     merr.Code,
 			StatusText: http.StatusText(merr.Code),
-			Data: map[string]string{
-				"message": merr.Description,
-			},
+			Data:       map[string]string{"message": merr.Description},
 		}
 
 		json.NewEncoder(w).Encode(response)
@@ -103,7 +101,7 @@ func (a *authHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func (a *authHandlers) Register(w http.ResponseWriter, r *http.Request) {
+func (a *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -175,9 +173,7 @@ func (a *authHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	response := models.Response{
 		Status:     http.StatusOK,
 		StatusText: http.StatusText(http.StatusOK),
-		Data: map[string]string{
-			"message": "Registration successful",
-		},
+		Data:       map[string]string{"message": "Registration successful"},
 	}
 
 	json.NewEncoder(w).Encode(response)

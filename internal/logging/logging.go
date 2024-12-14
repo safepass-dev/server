@@ -54,6 +54,7 @@ const (
 	BLUE   = "\033[34m"
 	YELLOW = "\033[33m"
 	WHITE  = "\033[97m"
+	BLACK  = "\033[30m"
 	BGRED  = "\033[41m"
 )
 
@@ -86,9 +87,9 @@ func (l *Logger) log(level int, msg string) {
 
 	var logMsg string
 	if level == INFO {
-		logMsg = fmt.Sprintf("%s %s%s%s %s\n", timestamp, levelColor, levelStr, RESET, msg)
+		logMsg = fmt.Sprintf("%s %s%s%s %s", timestamp, levelColor, levelStr, RESET, msg)
 	} else {
-		logMsg = fmt.Sprintf("%s %s%s%s %s:%d\n%s\n", timestamp, levelColor, levelStr, RESET, file, line, msg)
+		logMsg = fmt.Sprintf("%s %s%s%s %s:%d\n%s", timestamp, levelColor, levelStr, RESET, file, line, msg)
 	}
 
 	log.Println(logMsg)
