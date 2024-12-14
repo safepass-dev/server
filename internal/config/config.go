@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
-	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -19,9 +18,9 @@ type ServerConfig struct {
 }
 
 type JWTConfig struct {
-	SecretKey      string
-	Algorithm      string
-	ExpirationTime time.Duration
+	SecretKey  string
+	Algorithm  string
+	Expiration int
 }
 
 type LogConfig struct {
