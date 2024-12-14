@@ -32,21 +32,24 @@ func main() {
 
 	userRepository := repositories.NewUserRepository(client)
 	vaultRepository := repositories.NewVaultRepository(client, logger)
+	passwordRepository := repositories.NewPasswordRepository(client, logger)
 
 	userServices := services.NewUserServices(userRepository)
-	vaultServices := services.NewVaultServices(vaultRepository, &appConfig)
+	vaultServices := services.NewVaultServices(vaultRepository, passwordRepository, &appConfig)
 	authServices := services.NewAuthServices(userServices, vaultServices, &appConfig)
 
 	authHandlers := handlers.NewAuthHandlers(*authServices)
+	vaultHandlers := handlers.NewVaultHandlers(*vaultServices)
 
 	if err != nil {
 		panic(err)
 	}
 
 	logMiddleware := middlewares.NewLogMiddleware(logger)
+	authMiddleware := middlewares.NewAuthMiddleware(logger, appConfig)
 
-	router := routes.NewRouter(authHandlers)
-	mux := routes.NewServer(router)
+	router := routes.NewRouter(authMiddleware, authHandlers, vaultHandlers)
+	mux := router.NewServer()
 
 	loggedMux := logMiddleware.LogMiddlewareFunc(mux)
 

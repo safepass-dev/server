@@ -36,7 +36,7 @@ func NewVaultRepository(client *supabase.Client, logger *logging.Logger) *VaultR
 func (v *VaultRepository) GetVaults() ([]*models.Vault, *models.Error) {
 	res, n, err := v.client.From("vaults").Select("*", "exact", false).Execute()
 	if err != nil {
-		description := "An error occurred while retrieving the vaults."
+		description := "An error occurred while retrieving vaults."
 		v.logger.Error(err.Error())
 
 		return nil, models.NewError(500, "InternalServerError", description)

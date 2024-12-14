@@ -80,7 +80,7 @@ func (a *AuthServices) Login(userRequest *user.LoginRequest) (*models.TokenRespo
 		"iss": "safepass",
 		"sub": user.ID,
 		"iat": time.Now().Unix(),
-		"exp": time.Now().Add(time.Second * a.appConfig.JWT.ExpirationTime).Unix(),
+		"exp": time.Now().Add(time.Second * time.Duration(a.appConfig.JWT.Expiration)).Unix(),
 		"aud": "safepass-mobile",
 		"roles": []string{
 			"user",
@@ -146,14 +146,13 @@ func (a *AuthServices) Register(userRequest *user.CreateUserRequest) []*models.E
 
 	createdUser, ok := identityResult.Message.(*models.User)
 	if !ok {
-		a.userServices.DeleteUser(strconv.Itoa(createdUser.ID))
 		return []*models.Error{models.NewError(500, "InternalServerError", "Unexpected error occurred.")}
 	}
 
 	merr := a.vaultServices.CreateVault(createdUser.ID, userRequest.ProtectedSymmetricKey)
 	if merr != nil {
 		a.userServices.DeleteUser(strconv.Itoa(createdUser.ID))
-		return []*models.Error{models.NewError(500, "InternalServerError", "Unexpected error occurred while creating vault for user.")}
+		return []*models.Error{models.NewError(merr.Code, merr.CodeString, merr.Description)}
 	}
 
 	return nil

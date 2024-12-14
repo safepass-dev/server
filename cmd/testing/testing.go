@@ -43,7 +43,9 @@ func generatePrivateKey() {
 
 func vaults(client *supabase.Client, appConfig config.Config, logger *logging.Logger) {
 	vaultRepository := repositories.NewVaultRepository(client, logger)
-	vaultServices := services.NewVaultServices(vaultRepository, &appConfig)
+	passwordRepository := repositories.NewPasswordRepository(client, logger)
+
+	vaultServices := services.NewVaultServices(vaultRepository, passwordRepository, &appConfig)
 
 	vault, err := vaultServices.GetVaultByUserID("10")
 	if err != nil {

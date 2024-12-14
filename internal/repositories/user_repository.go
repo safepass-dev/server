@@ -149,7 +149,7 @@ func (u *UserRepository) CreateUser(user *user.CreateUser) *models.IdentityResul
 	return &models.IdentityResult{
 		Errors:    nil,
 		Succeeded: true,
-		Message:   response,
+		Message:   response[0],
 	}
 }
 
