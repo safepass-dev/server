@@ -82,8 +82,8 @@ SafePass is a secure password manager application. This repository contains the 
 
 1. Clone the repository:
     ```sh
-    git clone https://github.com/yourusername/safepass-server.git
-    cd safepass-server
+    git clone https://github.com/safepass-dev/server.git
+    cd server
     ```
 
 2. Install dependencies:
